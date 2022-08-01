@@ -3,12 +3,15 @@ from .views import SendPasswordResetEmailView, UserChangePasswordView, UserLogin
     UserPasswordResetView, PostList, PostDetail,\
     CommentList,CommentDetail,\
     CategoryList,CategoryDetail,\
-    MyPostList, PostCat, UserList, UserDetail,UserDetailList, PostListView, MyPostUserList, EditMyProfile
+    MyPostList, PostCat, UserList, UserDetail,UserDetailList, PostListView,\
+    MyPostUserList, EditMyProfile, AddLikeUnlikeView,MyLikedPostUserList,UserChangeView
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('profile/', UserProfileView.as_view(), name='profile'),
+    path('change/', UserChangeView.as_view()),
+
     path('changepassword/', UserChangePasswordView.as_view(), name='changepassword'),
     path('send-reset-password-email/', SendPasswordResetEmailView.as_view(), name='send-reset-password-email'),
     path('reset-password/<uid>/<token>/', UserPasswordResetView.as_view(), name='reset-password'),
@@ -22,6 +25,8 @@ urlpatterns = [
     path('categories/<int:pk>/', CategoryDetail.as_view()),
     path('myposts/', MyPostList.as_view()),
     path('jopa/', MyPostUserList.as_view()),
+    path('like/unlike/<int:post_id>', AddLikeUnlikeView.as_view()),
+    path('liked/', MyLikedPostUserList.as_view()),
 
     re_path('popa', PostCat.as_view()),
 

@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.fields import SerializerMethodField
+
 from .models import User, Post, Comment,Category
 from django.utils.encoding import smart_str, force_bytes, DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -9,7 +11,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
   password2 = serializers.CharField(style={'input_type':'password'}, write_only=True)
   class Meta:
     model = User
-    fields=['email', 'name', 'password', 'password2', 'tc', 'image']
+    fields=['email', 'name', 'password', 'password2', 'tc', 'image', 'lati', 'long','cityName','description']
     extra_kwargs={
       'password':{'write_only':True}
     }
@@ -44,7 +46,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
   class Meta:
     model = User
-    fields = ['id', 'email', 'name', 'image']
+    fields = ['id', 'email', 'name', 'image','lati', 'long','cityName','description']
 
 
 class UserChangePasswordSerializer(serializers.Serializer):
@@ -121,7 +123,7 @@ class PostSerializer(serializers.ModelSerializer):
 
   class Meta:
     model = Post
-    fields = ['id', 'title', 'body', 'owner','image_url','place', 'comments', 'long', 'lati','categories', "datetim", 'date','time','categories']
+    fields = ['id', 'title', 'body', 'owner','image_url','place', 'comments', 'long', 'lati','categories', "datetim", 'date','time','categories','cityName','likes']
 
 class CommentSerializer(serializers.ModelSerializer):
   owner = serializers.ReadOnlyField(source='owner.email')
@@ -153,17 +155,23 @@ class PostListSerializer(serializers.ModelSerializer):
   user_img = serializers.ImageField(source='owner.image')
   userid = serializers.IntegerField(source="owner.id")
   categories = serializers.SlugRelatedField( many=True,slug_field='name', read_only=True,)
-
-
+  read_by_you =serializers.BooleanField()
+  # read_by_you =SerializerMethodField()
   class Meta:
     model = Post
-    fields = ['id', 'title', 'body', 'owner','image_url','place', 'comments', 'long', 'lati','categories', "date","user_img","userid", 'time',]
+
+    fields = ['id', 'title', 'body', 'owner','image_url','place', 'comments', 'long', 'lati','categories', "date","user_img","userid", 'time','cityName','likes','read_by_you']
+    def save(self):
+      user = self.context['request'].user
+      return  user
+
+
 class PostListLolSerializer(serializers.ModelSerializer):
   # posts = serializers.SlugRelatedField(slug_field='image_url')
 
   class Meta:
     model = User
-    fields = ['id', 'email', 'name', 'image' ]
+    fields = ['id', 'email', 'name', 'image', 'description' ]
 class UserPostList(serializers.ModelSerializer):
   owner = serializers.ReadOnlyField(source='owner.name')
   comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -174,4 +182,24 @@ class UserPostList(serializers.ModelSerializer):
     model = Post
     fields = ['id', 'title', 'body', 'owner', 'image_url', 'place', 'comments', 'long', 'lati', 'categories', "date", "userid", 'time', ]
 
+class LikeSerializer(serializers.ModelSerializer):
+  owner = serializers.ReadOnlyField(source='owner.name')
 
+  class Meta:
+    model = Post
+    fields = ['id', 'likes']
+class LikedPostsSerializer(serializers.ModelSerializer):
+  owner = serializers.ReadOnlyField(source='owner.name')
+  comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+  userid = serializers.IntegerField(source="owner.id")
+  categories = serializers.SlugRelatedField(many=True, slug_field='name', read_only=True, )
+
+  class Meta:
+    model = Post
+    fields = ['id', 'title', 'body', 'owner','image_url','place', 'comments', 'long', 'lati','categories', "date","userid", 'time','cityName','likes']
+class ChangeUserSerializer(serializers.ModelSerializer):
+  cityName = serializers.CharField(max_length=255,  write_only=True)
+
+  class Meta:
+    model = User
+    fields = ['id', 'email', 'name', 'cityName','description' ]

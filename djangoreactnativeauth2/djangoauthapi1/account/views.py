@@ -6,7 +6,7 @@ from .serializers import SendPasswordResetEmailSerializer, UserChangePasswordSer
   UserLoginSerializer, UserPasswordResetSerializer,\
   UserProfileSerializer, UserRegistrationSerializer, PostSerializer,\
   CommentSerializer,CategorySerializer,UserDetailListSerializer, PostListSerializer,\
-  PostListLolSerializer, UserPostList
+  PostListLolSerializer, UserPostList, LikeSerializer,LikedPostsSerializer, ChangeUserSerializer
 from django.contrib.auth import authenticate
 from .renderers import UserRenderer
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Post, Comment, Category, User
 from rest_framework import generics
 from rest_framework.parsers import MultiPartParser, FormParser
-
+from django.db.models import Case, BooleanField, Value, When
 # Generate Token Manually
 def get_tokens_for_user(user):
   refresh = RefreshToken.for_user(user)
@@ -86,9 +86,11 @@ class PostList(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     parser_classes = (MultiPartParser, FormParser)
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['categories']
+    filterset_fields = ['cityName','categories','datetim']
     def perform_create(self, serializer):
       serializer.save(owner=self.request.user)
+
+
 
 
 class PostListView(generics.ListAPIView):
@@ -98,10 +100,22 @@ class PostListView(generics.ListAPIView):
   parser_classes = (MultiPartParser, FormParser)
   filter_backends = [DjangoFilterBackend]
   filterset_fields = ['categories']
+  likes = 'true'
 
+  def get_queryset(self, **kwargs):
+    return Post.objects.all().order_by('-id').annotate(
+      read_by_you=Case(
+        When(
+          likes=self.request.user,
+          then=Value(True)
+        ),
+        default=Value(False),
+        output_field=BooleanField()
+      )
+    )
 
   def perform_create(self, serializer):
-    serializer.save(categories=self.request.categories)
+    serializer.save(like=self.request.user)
 class PostDetail(generics.RetrieveUpdateDestroyAPIView):
   queryset = Post.objects.all()
   serializer_class = PostSerializer
@@ -185,3 +199,28 @@ class EditMyProfile(generics.UpdateAPIView):
 
   def get_queryset(self):
     return User.objects.all().filter(email=self.request.user)
+class AddLikeUnlikeView(APIView):
+    # permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, pk):
+      serializer_class = LikeSerializer
+
+      return Response( status=status.HTTP_200_OK)
+    def post(self,request,post_id):
+        post = Post.objects.get(pk=post_id)
+        if post.likes.filter(pk=request.user.pk).exists():
+            post.likes.remove(request.user)
+        else:
+            post.likes.add(request.user)
+
+        return Response({'msg': 'Password Reset link send. Please check your Email'}, status=status.HTTP_200_OK, )
+class MyLikedPostUserList(generics.ListAPIView):
+
+  serializer_class = LikedPostsSerializer
+
+  def get_queryset(self):
+    return Post.objects.all().filter(likes=self.request.user)
+
+class UserChangeView(generics.RetrieveUpdateDestroyAPIView):
+  serializer_class = PostSerializer
+  # def get_queryset(self):
+  #   return User.objects.all().filter(email=self.request.user)

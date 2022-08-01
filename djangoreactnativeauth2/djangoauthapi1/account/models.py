@@ -1,10 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericRelation
+
 def upload_to(instance, filename):
     return 'images/{filename}'.format(filename=filename)
 #  Custom User Manager
 class UserManager(BaseUserManager):
-  def create_user(self, email, name, tc,image, password=None, password2=None):
+  def create_user(self, email, name, tc,image,cityName,lati,long,description, password=None, password2=None):
       """
       Creates and saves a User with the given email, name, tc and password.
       """
@@ -15,14 +19,18 @@ class UserManager(BaseUserManager):
           email=self.normalize_email(email),
           name=name,
           tc=tc,
-          image=image
+          image=image,
+          cityName=cityName,
+          lati=lati,
+          long=long,
+          description=description
       )
 
       user.set_password(password)
       user.save(using=self._db)
       return user
 
-  def create_superuser(self, email, name, tc,image, password=None):
+  def create_superuser(self, email, name, tc,image,cityName,lati,long,description, password=None):
       """
       Creates and saves a superuser with the given email, name, tc and password.
       """
@@ -32,6 +40,10 @@ class UserManager(BaseUserManager):
           name=name,
           tc=tc,
           image=image,
+          cityName=cityName,
+          lati=lati,
+          long=long,
+          description=description
       )
       user.is_admin = True
       user.save(using=self._db)
@@ -48,6 +60,11 @@ class User(AbstractBaseUser):
 
   tc = models.BooleanField()
   image = models.ImageField(upload_to=upload_to, blank=True, null=True)
+  cityName = models.TextField(blank=True, default='')
+  description = models.TextField(blank=True, default='')
+
+  long = models.FloatField(blank=True)
+  lati = models.FloatField(blank=True)
   is_active = models.BooleanField(default=True)
   is_admin = models.BooleanField(default=False)
   created_at = models.DateTimeField(auto_now_add=True)
@@ -82,6 +99,9 @@ class Post(models.Model):
     owner = models.ForeignKey(User, related_name='posts', on_delete=models.CASCADE)
     image_url = models.ImageField(upload_to=upload_to, blank=True, null=True)
     place = models.TextField(blank=True, default='')
+    cityName = models.TextField(blank=True, default='')
+    likes = models.ManyToManyField('User',blank=True,related_name='likes')
+
     long = models.FloatField(blank=True)
     lati = models.FloatField(blank=True)
     datetim= models.DateTimeField(blank=True, null=True)
